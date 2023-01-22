@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM --platform=$BUILDPLATFORM golang:1.19.2-alpine AS builder
+# FROM --platform=$BUILDPLATFORM golang:1.19.2-alpine AS builder
+FROM golang:1.19.2-alpine AS builder
 RUN apk add build-base protobuf-dev protoc
 WORKDIR /usr/src/app/
 
-ARG GOOS=${TARGETOS} GOARCH=${TARGETARCH}
+# ARG GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
 # Restore dependencies
 RUN export
