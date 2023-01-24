@@ -32,5 +32,5 @@ WORKDIR /app
 COPY --from=builder /app/target/release/shippingservice /app/shippingservice
 
 EXPOSE ${SHIPPING_SERVICE_PORT}
-# ENTRYPOINT ["/app/shippingservice"]
-ENTRYPOINT [ "/bin/sh" ]
+ENTRYPOINT ["/app/shippingservice"]
+# ENTRYPOINT [ "/bin/sh" ]
