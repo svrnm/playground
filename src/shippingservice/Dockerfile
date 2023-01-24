@@ -20,7 +20,7 @@ ENV CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
 ENV CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
 
 RUN cargo build -r --features="dockerproto" --target aarch64-unknown-linux-gnu
-RUN cp /app/target/aarch64-unknown-linux-musl/release/shippingservice /app/target/release/shippingservice;
+RUN cp /app/target/aarch64-unknown-linux-gnu/release/shippingservice /app/target/release/shippingservice;
 
 FROM busybox:glibc as release
 #RUN apk add --no-cache ca-certificates
