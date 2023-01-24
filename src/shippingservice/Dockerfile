@@ -18,11 +18,9 @@ COPY /pb/ /app/proto/
 RUN if [ "$TARGETPLATFORM" = "$BUILDPLATFORM" ]; \
         then cargo build -r --features="dockerproto"; \
     else \  
-        env CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-none-elf-gcc \
-            CC_aarch64_unknown_linux_gnu=aarch64-none-elf-gcc \
-            CXX_aarch64_unknown_linux_gnu=aarch64-none-elf-g++ \
-            CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-none-elf-gcc \
-            cargo build -r --features="dockerproto" --target aarch64-unknown-linux-musl; \  
+        env CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-none-elf-gcc \
+            cargo build -r --features="dockerproto" --target aarch64-unknown-linux-musl && \  
+            cp /app/target/aarch64-unknown-linux/musl/release/shippingservice /app/target/release/shippingservice \
     fi
 
 FROM alpine as release
