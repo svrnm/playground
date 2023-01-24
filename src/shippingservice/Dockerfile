@@ -1,35 +1,52 @@
 # build context will only work from ../../docker-compose.yml
-FROM --platform=linux/amd64 rust:1.61 as builder
+FROM --platform=${BUILDPLATFORM} rust:1.61 as builder
 
-ARG TARGETOS TARGETARCH TARGETPLATFORM BUILDPLATFORM
+#ARG TARGETOS TARGETARCH TARGETPLATFORM BUILDPLATFORM BUILDOS BUILDARCH BUILDVARIANT TARGETVARIANT
 
-RUN apt update && apt upgrade -y 
-RUN apt install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross libprotobuf-dev protobuf-compiler
+ARG TARGETARCH TARGETPLATFORM BUILDPLATFORM
 
-RUN rustup target add aarch64-unknown-linux-gnu 
-RUN rustup toolchain install stable-aarch64-unknown-linux-gnu
+RUN echo Building on ${BUILDPLATFORM} for ${TARGETPLATFORM}
+
+RUN if [ "${TARGETPLATFORM}" = "${BUILDPLATFORM}" ] ; then \
+        apt-get update && apt-get install --no-install-recommends -y g++ libc6-dev libprotobuf-dev protobuf-compiler ca-certificates; \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
+        apt-get update && apt-get install --no-install-recommends -y g++-aarch64-linux-gnu libc6-dev-arm64-cross libprotobuf-dev protobuf-compiler ca-certificates && \
+        rustup target add aarch64-unknown-linux-gnu && \
+        rustup toolchain install stable-aarch64-unknown-linux-gnu; \
+    else \
+        echo "${TARGETPLATFORM} is not supported"; \
+        exit 1; \
+    fi
 
 WORKDIR /app/
 
-# build app
 COPY /src/shippingservice/ /app/
 COPY /pb/ /app/proto/
 
-ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc 
-ENV CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc 
-ENV CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
+RUN if [ "${TARGETPLATFORM}" = "${BUILDPLATFORM}" ] ; then \
+        cargo build -r --features="dockerproto"; \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
+        RUN env CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+                CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
+                CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
+            cargo build -r --features="dockerproto" --target aarch64-unknown-linux-gnu && \
+            cp /app/target/aarch64-unknown-linux-gnu/release/shippingservice /app/target/release/shippingservice; \
+    else \
+        echo "${TARGETPLATFORM} is not supported"; \
+        exit 1; \
+    fi
 
-RUN cargo build -r --features="dockerproto" --target aarch64-unknown-linux-gnu
-RUN cp /app/target/aarch64-unknown-linux-gnu/release/shippingservice /app/target/release/shippingservice;
+
+ENV GRPC_HEALTH_PROBE_VERSION=v0.4.7
+RUN wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${TARGETARCH} && \
+    chmod +x /bin/grpc_health_probe
 
 FROM debian:bullseye-slim as release
-#RUN apk add --no-cache ca-certificates
-#RUN GRPC_HEALTH_PROBE_VERSION=v0.4.7 && \
-#    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
-#    chmod +x /bin/grpc_health_probe
+
 WORKDIR /app
 # /app/app/target/aarch64-unknown-linux-musl/release
 COPY --from=builder /app/target/release/shippingservice /app/shippingservice
+COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 
 EXPOSE ${SHIPPING_SERVICE_PORT}
 ENTRYPOINT ["/app/shippingservice"]
