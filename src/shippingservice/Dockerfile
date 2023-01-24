@@ -26,11 +26,11 @@ COPY /pb/ /app/proto/
 RUN if [ "${TARGETPLATFORM}" = "${BUILDPLATFORM}" ] ; then \
         cargo build -r --features="dockerproto"; \
     elif [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
-        RUN env CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
-                CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
-                CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
-            cargo build -r --features="dockerproto" --target aarch64-unknown-linux-gnu && \
-            cp /app/target/aarch64-unknown-linux-gnu/release/shippingservice /app/target/release/shippingservice; \
+        env CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+            CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
+            CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
+        cargo build -r --features="dockerproto" --target aarch64-unknown-linux-gnu && \
+        cp /app/target/aarch64-unknown-linux-gnu/release/shippingservice /app/target/release/shippingservice; \
     else \
         echo "${TARGETPLATFORM} is not supported"; \
         exit 1; \
