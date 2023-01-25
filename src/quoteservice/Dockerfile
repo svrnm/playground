@@ -15,10 +15,7 @@ FROM php:8.2-apache
 
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 RUN chmod +x /usr/local/bin/install-php-extensions \
-  && install-php-extensions \
-    opcache \
-    protobuf \
-    open-telemetry/opentelemetry-php-instrumentation@1.0.0beta2
+  && install-php-extensions open-telemetry/opentelemetry-php-instrumentation@1.0.0beta2
 
 WORKDIR /var/www
 COPY --from=build /tmp/vendor/ ./vendor/

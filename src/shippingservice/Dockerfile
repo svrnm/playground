@@ -1,12 +1,11 @@
 # build context will only work from ../../docker-compose.yml
 FROM --platform=${BUILDPLATFORM} rust:1.61 as builder
 
-#ARG TARGETOS TARGETARCH TARGETPLATFORM BUILDPLATFORM BUILDOS BUILDARCH BUILDVARIANT TARGETVARIANT
-
 ARG TARGETARCH TARGETPLATFORM BUILDPLATFORM
 
 RUN echo Building on ${BUILDPLATFORM} for ${TARGETPLATFORM}
 
+# Check if we are doing cross-compilation, if so we need to add in some more dependencies and run rustup
 RUN if [ "${TARGETPLATFORM}" = "${BUILDPLATFORM}" ] ; then \
         apt-get update && apt-get install --no-install-recommends -y g++ libc6-dev libprotobuf-dev protobuf-compiler ca-certificates; \
     elif [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
@@ -23,6 +22,7 @@ WORKDIR /app/
 COPY /src/shippingservice/ /app/
 COPY /pb/ /app/proto/
 
+# Compile or crosscompile
 RUN if [ "${TARGETPLATFORM}" = "${BUILDPLATFORM}" ] ; then \
         cargo build -r --features="dockerproto"; \
     elif [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
@@ -44,10 +44,8 @@ RUN wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health
 FROM debian:bullseye-slim as release
 
 WORKDIR /app
-# /app/app/target/aarch64-unknown-linux-musl/release
 COPY --from=builder /app/target/release/shippingservice /app/shippingservice
 COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 
 EXPOSE ${SHIPPING_SERVICE_PORT}
 ENTRYPOINT ["/app/shippingservice"]
-# ENTRYPOINT [ "/bin/sh" ]
